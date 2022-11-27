@@ -1,3 +1,8 @@
+// TODO: should change the sorting according to the direction we are coming from
+// TODO: when moved for the first time, it should jump to 0:50 or 50:100
+// TODO: at the right side of the screen, one pixel is not used
+
+
 var Yanjing = {};
 
 /**
@@ -5,6 +10,8 @@ var Yanjing = {};
  * this PX of workspace center, consider the client centered.
  */
 Yanjing.CENTER_MOE = 2;
+
+Yanjing.MARGIN_OF_ERROR = 1;
 
 Yanjing.States = {
   NOOP: 'NOOP',
@@ -26,13 +33,16 @@ Yanjing.sanitizeSizes = function (sizesStringList) {
   );
 }
 
-var DEFAULT_SIZES = '75,66.6666,50,33.3333,25';
+var DEFAULT_SIZES = '66.6666,50,33.3333';
+var DEFAULT_WIDTH_ON_FIRST_MOVE = '50';
 
 var configSizes = [];
 var configSizesString = '';
+var widthOnFirstMove;
 try {
   var configSizesString = readConfig('sizes', '').toString();
   configSizes = Yanjing.sanitizeSizes(configSizesString);
+  widthOnFirstMove = parseFloat(readConfig('widthOnFirstMove', '').toString());
 } catch (err) {
   print(err);
 }
@@ -45,6 +55,8 @@ if (configSizes.length > 0) {
   print('Using DEFAULT_SIZES', DEFAULT_SIZES);
 }
 
+Yanjing.widthOnFirstMove = widthOnFirstMove ? widthOnFirstMove : DEFAULT_WIDTH_ON_FIRST_MOVE;
+
 Yanjing.Dirs = {
   Left: 'Left',
   Center: 'Center',
@@ -56,7 +68,7 @@ Yanjing.Dirs = {
  */
 Yanjing.getWorkAreaRect = function () {
   return workspace.clientArea(
-    KWin.WorkArea,
+    KWin.MaximizeArea,
     workspace.activeScreen,
     workspace.currentDesktop
   );
@@ -69,6 +81,114 @@ Yanjing.getWorkAreaRect = function () {
 Yanjing.getRightEdge = function (rect) {
   return rect.x + rect.width;
 };
+
+/**
+ * @param {number} begin e.g. 33.33
+ * @param {number} end e.g. 1
+ * @param {number} workAreaMinX e.g. 0
+ * @param {number} workAreaMaxX e.g. 1024
+ * @param {number} workAreaWidth e.g. 1024
+ * @return {number[]} width e.g. [338, 1024]
+ */
+Yanjing.sizeToLeftAndRightEdge = function (begin, end, workAreaMinX, workAreaMaxX, workAreaWidth) {
+	var workAreaWidth = workAreaMaxX - workAreaMinX;
+	return [
+		Math.round((begin / 100) * workAreaWidth + workAreaMinX),
+		Math.round((end / 100) * workAreaWidth + workAreaMinX)
+	];
+}
+
+Yanjing.buildSizes = function () {
+	Yanjing.sizeArray = [];
+	var workArea = Yanjing.getWorkAreaRect();
+	var minX = workArea.left;
+	var maxX = workArea.right;
+	var width = workArea.width;
+	Yanjing.Sizes.forEach(size => {
+		Yanjing.sizeArray.push(Yanjing.sizeToLeftAndRightEdge(0, size, minX, maxX, width));
+		Yanjing.sizeArray.push(Yanjing.sizeToLeftAndRightEdge(size, 100, minX, maxX, width));
+		// add size combinations
+		if (size !== 50) {
+			var otherSizes = Yanjing.Sizes.filter(s => s > size && s !== 50).sort();
+			otherSizes.forEach(otherSize => {
+				Yanjing.sizeArray.push(Yanjing.sizeToLeftAndRightEdge(size, otherSize, minX, maxX, width));
+			});
+		}
+	});
+	Yanjing.sizeArray.push(Yanjing.sizeToLeftAndRightEdge(0, 100, minX, maxX, width));
+	Yanjing.sizeArray.sort((a, b) => {
+		if (a[0] > b[0]) return 1;
+		if (a[0] < b[0]) return -1;
+		if (a[0] === b[0]) {
+			if (a[1] > b[1]) return 1;
+			if (a[1] < b[1]) return -1;
+			return 0;
+		}
+	});
+}
+
+/**
+ * @param {KWin::AbstractClient} client
+ * @return {number} index e.g. -1
+ */
+Yanjing.getCurrentSizeIndex = function (client) {
+	var xMin = client.geometry.left;
+	var xMax = client.geometry.right;
+	return Yanjing.sizeArray.findIndex(size => Math.abs(xMin - size[0]) <= Yanjing.MARGIN_OF_ERROR && Math.abs(xMax - size[1]) <= Yanjing.MARGIN_OF_ERROR);
+}
+
+Yanjing.isFirstMove = function (client) {
+	return Yanjing.getCurrentSizeIndex(client) === -1;
+}
+
+/**
+ * @param {KWin::AbstractClient} client
+ * @param {boolean} shouldDecrease - whether the index should decrease or increase
+ * @return {number} next index e.g. 0
+ */
+Yanjing.getNextSizeIndex = function (client, shouldDecrease) {
+	var currentSizeIdx = Yanjing.getCurrentSizeIndex(client);
+	var maxPossibleIdx = Yanjing.sizeArray.length - 1;
+	if (currentSizeIdx === -1) {
+		return shouldDecrease ? 0 : maxPossibleIdx;
+	}
+	return shouldDecrease ? Math.max(currentSizeIdx - 1, 0) : Math.min(currentSizeIdx + 1, maxPossibleIdx);
+}
+
+/**
+ * @param {KWin::AbstractClient} client
+ * @param {boolean} shouldDecrease - whether the index should decrease or increase
+ * @return {number} next size e.g. [0, 512]
+ */
+Yanjing.getNextSize = function (client, shouldDecrease) {
+	return Yanjing.sizeArray[Yanjing.getNextSizeIndex(client, shouldDecrease)];
+}
+
+Yanjing.getNextSizeForFirstMove = function (toLeft) {
+	var workArea = Yanjing.getWorkAreaRect();
+	var minX = workArea.left;
+	var maxX = workArea.right;
+	var width = workArea.width;
+	return toLeft ?
+		Yanjing.sizeToLeftAndRightEdge(0, Yanjing.widthOnFirstMove, minX, maxX, width) :
+		Yanjing.sizeToLeftAndRightEdge(Yanjing.widthOnFirstMove, 100, minX, maxX, width);
+}
+
+Yanjing.setNextSize = function (client, shouldDecrease) {
+	if (Yanjing.beforeMove(client) === Yanjing.States.ERROR) {
+		return Yanjing.States.ERROR;
+	}
+	var nextSize = Yanjing.isFirstMove(client) ?
+		Yanjing.getNextSizeForFirstMove(shouldDecrease) :
+		Yanjing.getNextSize(client, shouldDecrease);
+
+	var rect = client.geometry;
+	rect.x = nextSize[0];
+	rect.width = nextSize[1] - nextSize[0];
+	rect.right = rect.x + rect.width;
+	return Yanjing.States.DONE;
+}
+
 
 /**
  * @param {number} size e.g. 33.3333
@@ -281,14 +401,12 @@ Yanjing.squish = function (client, key) {
   }
 
   var result = move(client);
-  if (result === Yanjing.States.NOOP) {
+  if (result === Yanjing.States.NOOP || result === Yanjing.States.DONE) {
     return Yanjing.cycle(client, dir);
   }
 
-  if (result === Yanjing.States.ERROR) {
-    print('Failed to move ' + dir);
-  }
-  return result;
+  print('Failed to move ' + dir);
+  return Yanjing.States.ERROR;
 };
 
 /**
@@ -310,35 +428,6 @@ Yanjing.yMax = function (client) {
 };
 
 Yanjing.main = function () {
-  registerShortcut(
-    'left',
-    'Yanjing: Flush or cyclic resize window to left edge of screen',
-    '',
-    function () {
-      var client = workspace.activeClient;
-      Yanjing.squish(client, Yanjing.Dirs.Left);
-    }
-  );
-
-  registerShortcut(
-    'center',
-    'Yanjing: Center or cyclic resize window',
-    '',
-    function () {
-      var client = workspace.activeClient;
-      Yanjing.squish(client, Yanjing.Dirs.Center);
-    }
-  );
-
-  registerShortcut(
-    'right',
-    'Yanjing: Flush or cyclic resize window to right edge of screen',
-    '',
-    function () {
-      var client = workspace.activeClient;
-      Yanjing.squish(client, Yanjing.Dirs.Right);
-    }
-  );
 
   registerShortcut(
     'left-ymax',
@@ -347,7 +436,8 @@ Yanjing.main = function () {
     function () {
       var client = workspace.activeClient;
       Yanjing.yMax(client);
-      Yanjing.squish(client, Yanjing.Dirs.Left);
+	  Yanjing.buildSizes();
+	  Yanjing.setNextSize(client, true);
     }
   );
 
@@ -369,7 +459,8 @@ Yanjing.main = function () {
     function () {
       var client = workspace.activeClient;
       Yanjing.yMax(client);
-      Yanjing.squish(client, Yanjing.Dirs.Right);
+	  Yanjing.buildSizes();
+	  Yanjing.setNextSize(client, false);
     }
   );
 };
