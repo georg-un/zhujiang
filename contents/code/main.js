@@ -1,6 +1,3 @@
-// TODO: center alignment should be controlled via up + down keys
-
-
 var Zhujiang = {};
 
 /**
@@ -164,6 +161,19 @@ Zhujiang.isFirstMove = function (client, centered) {
 /**
  * @param {KWin::AbstractClient} client
  * @param {boolean} shouldDecrease - whether the index should decrease or increase
+ */
+Zhujiang.getNextCenteredSizeIndex = function (client, shouldDecrease) {
+    var currentSizeIdx = Zhujiang.getCurrentSizeIndex(client, true);
+    var maxPossibleIdx = Zhujiang.centeredSizes.length - 1;
+    if (currentSizeIdx === -1) {
+        return shouldDecrease ? 0 : maxPossibleIdx;
+    }
+    return shouldDecrease ? currentSizeIdx - 1 : Math.min(currentSizeIdx + 1, maxPossibleIdx);
+}
+
+/**
+ * @param {KWin::AbstractClient} client
+ * @param {boolean} shouldDecrease - whether the index should decrease or increase
  * @return {number} next index e.g. 0
  */
 Zhujiang.getNextUncenteredSizeIndex = function (client, shouldDecrease) {
@@ -173,19 +183,6 @@ Zhujiang.getNextUncenteredSizeIndex = function (client, shouldDecrease) {
 		return shouldDecrease ? 0 : maxPossibleIdx;
 	}
 	return shouldDecrease ? Math.max(currentSizeIdx - 1, 0) : Math.min(currentSizeIdx + 1, maxPossibleIdx);
-}
-
-/**
- * @param {KWin::AbstractClient} client
- * @param {boolean} shouldDecrease - whether the index should decrease or increase
- */
-Zhujiang.getNextCenteredSizeIndex = function (client, shouldDecrease) {
-    var currentSizeIdx = Zhujiang.getCurrentSizeIndex(client, true);
-    var maxPossibleIdx = Zhujiang.centeredSizes.length - 1;
-    if (currentSizeIdx === -1) {
-        return shouldDecrease ? 0 : maxPossibleIdx;
-    }
-    return shouldDecrease ? Math.max(currentSizeIdx - 1, 0) : Math.min(currentSizeIdx + 1, maxPossibleIdx);
 }
 
 /**
@@ -209,9 +206,9 @@ Zhujiang.getNextSizeForFirstMove = function (shouldDecrease, centered) {
 	var maxX = workArea.right;
 	var width = workArea.width;
 	if (centered) {
-	    if (!shouldDecrease) {
-	        return Zhujiang.sizeToLeftAndRightEdge(0, 100, minX, maxX, width);
-	    }
+	    return shouldDecrease ?
+	        [Zhujiang.centeredSizes[0][0], Zhujiang.centeredSizes[0][1]] :
+	        Zhujiang.sizeToLeftAndRightEdge(0, 100, minX, maxX, width);
 	} else {
 	    return shouldDecrease ?
             Zhujiang.sizeToLeftAndRightEdge(0, Zhujiang.widthOnFirstMove, minX, maxX, width) :
@@ -219,43 +216,70 @@ Zhujiang.getNextSizeForFirstMove = function (shouldDecrease, centered) {
 	}
 }
 
-/**
- * @param {KWin::AbstractClient} client
- * @param {boolean} shouldDecrease - whether the index should decrease or increase
- */
-Zhujiang.setNextUncenteredSize = function (client, shouldDecrease) {
-	if (Zhujiang.beforeMove(client) === Zhujiang.States.ERROR) {
-		return Zhujiang.States.ERROR;
-	}
-	var nextSize = Zhujiang.isFirstMove(client, false) ?
-		Zhujiang.getNextSizeForFirstMove(shouldDecrease, false) :
-		Zhujiang.getNextSize(client, shouldDecrease, false);
+Zhujiang.detachWindow = function (client) {
+    var workArea = Zhujiang.getWorkAreaRect();
+    var minX = workArea.left;
+    var minY = workArea.top;
+    var width = workArea.width;
+    var height = workArea.height;
 
-	var rect = client.geometry;
-	rect.x = nextSize[0];
-	rect.width = nextSize[1] - nextSize[0];
-	rect.right = rect.x + rect.width;
-	return Zhujiang.States.DONE;
+    var rect = client.geometry;
+    rect.height = Math.round(height * 0.66);
+    rect.width = Math.round(width * 0.33);
+    rect.y = minY + Math.round(rect.height / 4);
+    rect.x = minX + rect.width;
+    return Zhujiang.States.DONE;
+}
+
+Zhujiang.resizeWindowFirstMove = function (client, shouldDecrease, centered) {
+    var nextSize = Zhujiang.getNextSizeForFirstMove(shouldDecrease, centered);
+    var rect = client.geometry;
+    rect.x = nextSize[0];
+    rect.width = nextSize[1] - nextSize[0];
+    rect.right = rect.x + rect.width;
+    return Zhujiang.States.DONE;
+}
+
+Zhujiang.resizeWindow = function (client, shouldDecrease, centered) {
+    var nextSize;
+    if (centered) {
+        var nextSizeIndex = Zhujiang.getNextCenteredSizeIndex(client, shouldDecrease);
+        if (nextSizeIndex === -1) {
+            return Zhujiang.detachWindow(client);
+        }
+        nextSize = Zhujiang.centeredSizes[nextSizeIndex];
+    } else {
+        nextSize = Zhujiang.uncenteredSizes[Zhujiang.getNextUncenteredSizeIndex(client, shouldDecrease)];
+    }
+    var rect = client.geometry;
+    rect.x = nextSize[0];
+    rect.width = nextSize[1] - nextSize[0];
+    rect.right = rect.x + rect.width;
+    return Zhujiang.States.DONE;
 }
 
 /**
  * @param {KWin::AbstractClient} client
  * @param {boolean} shouldDecrease - whether the index should decrease or increase
  */
-Zhujiang.setNextCenteredSize = function (client, shouldDecrease) {
+Zhujiang.setNextSize = function (client, shouldDecrease, centered) {
     if (Zhujiang.beforeMove(client) === Zhujiang.States.ERROR) {
 		return Zhujiang.States.ERROR;
 	}
 
-	var nextSize = Zhujiang.isFirstMove(client, true) ?
-	    Zhujiang.getNextSizeForFirstMove(shouldDecrease, true) :
-    	Zhujiang.getNextSize(client, shouldDecrease, true);
+	/*var nextSize = Zhujiang.isFirstMove(client, centered) ?
+	    Zhujiang.getNextSizeForFirstMove(shouldDecrease, centered) :
+    	Zhujiang.getNextSize(client, shouldDecrease, centered);*/
 
-    var rect = client.geometry;
+    return Zhujiang.isFirstMove(client, centered) ?
+        Zhujiang.resizeWindowFirstMove(client, shouldDecrease, centered) :
+        Zhujiang.resizeWindow(client, shouldDecrease, centered);
+
+    /*var rect = client.geometry;
     rect.x = nextSize[0];
     rect.width = nextSize[1] - nextSize[0];
     rect.right = rect.x + rect.width;
-    return Zhujiang.States.DONE;
+    return Zhujiang.States.DONE;*/
 }
 
 
@@ -506,7 +530,7 @@ Zhujiang.main = function () {
       var client = workspace.activeClient;
       Zhujiang.yMax(client);
 	  Zhujiang.buildSizes();
-	  Zhujiang.setNextUncenteredSize(client, true);
+	  Zhujiang.setNextSize(client, true, false);
     }
   );
 
@@ -518,7 +542,7 @@ Zhujiang.main = function () {
       var client = workspace.activeClient;
       Zhujiang.yMax(client);
 	  Zhujiang.buildSizes();
-	  Zhujiang.setNextUncenteredSize(client, false);
+	  Zhujiang.setNextSize(client, false, false);
     }
   );
 
@@ -530,7 +554,7 @@ Zhujiang.main = function () {
         var client = workspace.activeClient;
         Zhujiang.yMax(client);
         Zhujiang.buildSizes();
-        Zhujiang.setNextCenteredSize(client, false);
+        Zhujiang.setNextSize(client, false, true);
       }
     );
 
@@ -542,7 +566,7 @@ Zhujiang.main = function () {
           var client = workspace.activeClient;
           Zhujiang.yMax(client);
           Zhujiang.buildSizes();
-          Zhujiang.setNextCenteredSize(client, true);
+          Zhujiang.setNextSize(client, true, true);
         }
       );
 };
