@@ -14,7 +14,7 @@ console.log(JSON.stringify({
         "Description": p.Description,
         "EnabledByDefault": true,
         "Icon": "preferences-system-windows-script-test",
-        "Id": "yanjing",
+        "Id": "Zhujiang",
         "License": p.license,
         "Name": p.name,
         "ServiceTypes": [

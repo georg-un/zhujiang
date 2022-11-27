@@ -1,12 +1,12 @@
 {
   "private": true,
-  "name": "yanjing",
+  "name": "Zhujiang",
   "version": "6.1.2",
-  "description": "Window size and movement",
-  "homepage": "https://github.com/davidosomething/yanjing",
+  "description": "Window size and movement (yanjing fork)",
+  "homepage": "https://github.com/georg-un/zhujiang",
   "repository": {
     "type": "git",
-    "url": "https://github.com/davidosomething/yanjing.git"
+    "url": "https://github.com/georg-un/zhujiang.git"
   },
   "main": "code/main.js",
   "directories": {},
@@ -14,20 +14,19 @@
     "test": "jest",
     "debugger": "plasma-interactiveconsole --kwin || qdbus org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.showInteractiveKWinConsole",
     "restartplasma": "kquitapp5 plasmashell; kstart5 plasmashell",
-    "enable": "kwriteconfig5 --file kwinrc --group Plugins --key yanjing true && qdbus org.kde.KWin /KWin reconfigure",
-    "kwin:is_installed": "kpackagetool5 --type KWin/Script --show yanjing",
+    "enable": "kwriteconfig5 --file kwinrc --group Plugins --key zhujiang true && qdbus org.kde.KWin /KWin reconfigure",
+    "kwin:is_installed": "kpackagetool5 --type KWin/Script --show zhujiang",
     "kwin:install": "kpackagetool5 --type KWin/Script --install .",
     "kwin:upgrade": "kpackagetool5 --type KWin/Script --upgrade .",
-    "kwin:uninstall": "kpackagetool5 --type KWin/Script --remove yanjing",
+    "kwin:uninstall": "kpackagetool5 --type KWin/Script --remove zhujiang",
     "start": "npm run --silent build && npm run --silent kwin:is_installed && { npm run --silent kwin:upgrade; echo UPGRADED; } || { npm run --silent kwin:install && echo INSTALLED; }",
     "build": "node output-metadata.js > metadata.json",
-    "package": "npm run --silent build && zip --exclude \\*.spec.js --recurse-paths yanjing.kwinscript contents/ LICENSE metadata.json",
-    "version": "npm run --silent package && git add -- metadata.json yanjing.kwinscript"
+    "package": "npm run --silent build && zip --exclude \\*.spec.js --recurse-paths zhujiang.kwinscript contents/ LICENSE metadata.json",
+    "version": "npm run --silent package && git add -- metadata.json zhujiang.kwinscript"
   },
   "author": {
-    "name": "David O'Trakoun",
-    "email": "me@davidosomething.com",
-    "url": "https://davidosomething.com/"
+    "name": "Georg Unterholzner",
+    "email": "georg.unterholzner.coding@gmail.com"
   },
   "license": "MIT",
   "devDependencies": {

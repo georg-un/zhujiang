@@ -431,7 +431,7 @@ Zhujiang.main = function () {
 
   registerShortcut(
     'left-ymax',
-    'Zhujiang: Vertically maximize and flush or cyclic resize window to left edge of screen',
+    'Zhujiang: Resize window (left)',
     'ctrl+shift+meta+a',
     function () {
       var client = workspace.activeClient;
@@ -442,19 +442,8 @@ Zhujiang.main = function () {
   );
 
   registerShortcut(
-    'center-ymax',
-    'Zhujiang: Vertically maximize and center or cyclic resize window',
-    'ctrl+shift+meta+x',
-    function () {
-      var client = workspace.activeClient;
-      Zhujiang.yMax(client);
-      Zhujiang.squish(client, Zhujiang.Dirs.Center);
-    }
-  );
-
-  registerShortcut(
     'right-ymax',
-    'Zhujiang: Vertically maximize and flush or cyclic resize window to right edge of screen',
+    'Zhujiang: Resize window (right)',
     'ctrl+shift+meta+d',
     function () {
       var client = workspace.activeClient;
@@ -463,6 +452,28 @@ Zhujiang.main = function () {
 	  Zhujiang.setNextSize(client, false);
     }
   );
+
+  registerShortcut(
+      'center-ymax',
+      'Zhujiang: Resize window (up)',
+      'ctrl+shift+meta+w',
+      function () {
+        var client = workspace.activeClient;
+        Zhujiang.yMax(client);
+        Zhujiang.squish(client, Zhujiang.Dirs.Center);
+      }
+    );
+
+  registerShortcut(
+        'center-ymin',
+        'Zhujiang: Resize window (down)',
+        'ctrl+shift+meta+s',
+        function () {
+          var client = workspace.activeClient;
+          Zhujiang.yMax(client);
+          Zhujiang.squish(client, Zhujiang.Dirs.Center);
+        }
+      );
 };
 
 Zhujiang.main();
