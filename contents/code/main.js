@@ -3,17 +3,17 @@
 // TODO: at the right side of the screen, one pixel is not used
 
 
-var Yanjing = {};
+var Zhujiang = {};
 
 /**
  * Margin of Error in PX for centering a client. If client's center is within
  * this PX of workspace center, consider the client centered.
  */
-Yanjing.CENTER_MOE = 2;
+Zhujiang.CENTER_MOE = 2;
 
-Yanjing.MARGIN_OF_ERROR = 1;
+Zhujiang.MARGIN_OF_ERROR = 1;
 
-Yanjing.States = {
+Zhujiang.States = {
   NOOP: 'NOOP',
   DONE: 'DONE',
   ERROR: 'ERROR',
@@ -23,7 +23,7 @@ Yanjing.States = {
  * @param {string} sizesStringList comma separated
  * @return {number[]} No zero/falsies
  */
-Yanjing.sanitizeSizes = function (sizesStringList) {
+Zhujiang.sanitizeSizes = function (sizesStringList) {
   return (sizesStringList
     .split(',')
     .map(function ensureFloat(v) {
@@ -41,23 +41,23 @@ var configSizesString = '';
 var widthOnFirstMove;
 try {
   var configSizesString = readConfig('sizes', '').toString();
-  configSizes = Yanjing.sanitizeSizes(configSizesString);
+  configSizes = Zhujiang.sanitizeSizes(configSizesString);
   widthOnFirstMove = parseFloat(readConfig('widthOnFirstMove', '').toString());
 } catch (err) {
   print(err);
 }
 
 if (configSizes.length > 0) {
-  Yanjing.Sizes = configSizes;
+  Zhujiang.Sizes = configSizes;
   print('Using custom sizes', configSizesString);
 } else {
-  Yanjing.Sizes = Yanjing.sanitizeSizes(DEFAULT_SIZES);
+  Zhujiang.Sizes = Zhujiang.sanitizeSizes(DEFAULT_SIZES);
   print('Using DEFAULT_SIZES', DEFAULT_SIZES);
 }
 
-Yanjing.widthOnFirstMove = widthOnFirstMove ? widthOnFirstMove : DEFAULT_WIDTH_ON_FIRST_MOVE;
+Zhujiang.widthOnFirstMove = widthOnFirstMove ? widthOnFirstMove : DEFAULT_WIDTH_ON_FIRST_MOVE;
 
-Yanjing.Dirs = {
+Zhujiang.Dirs = {
   Left: 'Left',
   Center: 'Center',
   Right: 'Right',
@@ -66,7 +66,7 @@ Yanjing.Dirs = {
 /**
  * @return {QRect}
  */
-Yanjing.getWorkAreaRect = function () {
+Zhujiang.getWorkAreaRect = function () {
   return workspace.clientArea(
     KWin.MaximizeArea,
     workspace.activeScreen,
@@ -78,7 +78,7 @@ Yanjing.getWorkAreaRect = function () {
  * @param {QRect} rect
  * @return {number}
  */
-Yanjing.getRightEdge = function (rect) {
+Zhujiang.getRightEdge = function (rect) {
   return rect.x + rect.width;
 };
 
@@ -90,7 +90,7 @@ Yanjing.getRightEdge = function (rect) {
  * @param {number} workAreaWidth e.g. 1024
  * @return {number[]} width e.g. [338, 1024]
  */
-Yanjing.sizeToLeftAndRightEdge = function (begin, end, workAreaMinX, workAreaMaxX, workAreaWidth) {
+Zhujiang.sizeToLeftAndRightEdge = function (begin, end, workAreaMinX, workAreaMaxX, workAreaWidth) {
 	var workAreaWidth = workAreaMaxX - workAreaMinX;
 	return [
 		Math.round((begin / 100) * workAreaWidth + workAreaMinX),
@@ -98,25 +98,25 @@ Yanjing.sizeToLeftAndRightEdge = function (begin, end, workAreaMinX, workAreaMax
 	];
 }
 
-Yanjing.buildSizes = function () {
-	Yanjing.sizeArray = [];
-	var workArea = Yanjing.getWorkAreaRect();
+Zhujiang.buildSizes = function () {
+	Zhujiang.sizeArray = [];
+	var workArea = Zhujiang.getWorkAreaRect();
 	var minX = workArea.left;
 	var maxX = workArea.right;
 	var width = workArea.width;
-	Yanjing.Sizes.forEach(size => {
-		Yanjing.sizeArray.push(Yanjing.sizeToLeftAndRightEdge(0, size, minX, maxX, width));
-		Yanjing.sizeArray.push(Yanjing.sizeToLeftAndRightEdge(size, 100, minX, maxX, width));
+	Zhujiang.Sizes.forEach(size => {
+		Zhujiang.sizeArray.push(Zhujiang.sizeToLeftAndRightEdge(0, size, minX, maxX, width));
+		Zhujiang.sizeArray.push(Zhujiang.sizeToLeftAndRightEdge(size, 100, minX, maxX, width));
 		// add size combinations
 		if (size !== 50) {
-			var otherSizes = Yanjing.Sizes.filter(s => s > size && s !== 50).sort();
+			var otherSizes = Zhujiang.Sizes.filter(s => s > size && s !== 50).sort();
 			otherSizes.forEach(otherSize => {
-				Yanjing.sizeArray.push(Yanjing.sizeToLeftAndRightEdge(size, otherSize, minX, maxX, width));
+				Zhujiang.sizeArray.push(Zhujiang.sizeToLeftAndRightEdge(size, otherSize, minX, maxX, width));
 			});
 		}
 	});
-	Yanjing.sizeArray.push(Yanjing.sizeToLeftAndRightEdge(0, 100, minX, maxX, width));
-	Yanjing.sizeArray.sort((a, b) => {
+	Zhujiang.sizeArray.push(Zhujiang.sizeToLeftAndRightEdge(0, 100, minX, maxX, width));
+	Zhujiang.sizeArray.sort((a, b) => {
 		if (a[0] > b[0]) return 1;
 		if (a[0] < b[0]) return -1;
 		if (a[0] === b[0]) {
@@ -131,14 +131,14 @@ Yanjing.buildSizes = function () {
  * @param {KWin::AbstractClient} client
  * @return {number} index e.g. -1
  */
-Yanjing.getCurrentSizeIndex = function (client) {
+Zhujiang.getCurrentSizeIndex = function (client) {
 	var xMin = client.geometry.left;
 	var xMax = client.geometry.right;
-	return Yanjing.sizeArray.findIndex(size => Math.abs(xMin - size[0]) <= Yanjing.MARGIN_OF_ERROR && Math.abs(xMax - size[1]) <= Yanjing.MARGIN_OF_ERROR);
+	return Zhujiang.sizeArray.findIndex(size => Math.abs(xMin - size[0]) <= Zhujiang.MARGIN_OF_ERROR && Math.abs(xMax - size[1]) <= Zhujiang.MARGIN_OF_ERROR);
 }
 
-Yanjing.isFirstMove = function (client) {
-	return Yanjing.getCurrentSizeIndex(client) === -1;
+Zhujiang.isFirstMove = function (client) {
+	return Zhujiang.getCurrentSizeIndex(client) === -1;
 }
 
 /**
@@ -146,9 +146,9 @@ Yanjing.isFirstMove = function (client) {
  * @param {boolean} shouldDecrease - whether the index should decrease or increase
  * @return {number} next index e.g. 0
  */
-Yanjing.getNextSizeIndex = function (client, shouldDecrease) {
-	var currentSizeIdx = Yanjing.getCurrentSizeIndex(client);
-	var maxPossibleIdx = Yanjing.sizeArray.length - 1;
+Zhujiang.getNextSizeIndex = function (client, shouldDecrease) {
+	var currentSizeIdx = Zhujiang.getCurrentSizeIndex(client);
+	var maxPossibleIdx = Zhujiang.sizeArray.length - 1;
 	if (currentSizeIdx === -1) {
 		return shouldDecrease ? 0 : maxPossibleIdx;
 	}
@@ -160,33 +160,33 @@ Yanjing.getNextSizeIndex = function (client, shouldDecrease) {
  * @param {boolean} shouldDecrease - whether the index should decrease or increase
  * @return {number} next size e.g. [0, 512]
  */
-Yanjing.getNextSize = function (client, shouldDecrease) {
-	return Yanjing.sizeArray[Yanjing.getNextSizeIndex(client, shouldDecrease)];
+Zhujiang.getNextSize = function (client, shouldDecrease) {
+	return Zhujiang.sizeArray[Zhujiang.getNextSizeIndex(client, shouldDecrease)];
 }
 
-Yanjing.getNextSizeForFirstMove = function (toLeft) {
-	var workArea = Yanjing.getWorkAreaRect();
+Zhujiang.getNextSizeForFirstMove = function (toLeft) {
+	var workArea = Zhujiang.getWorkAreaRect();
 	var minX = workArea.left;
 	var maxX = workArea.right;
 	var width = workArea.width;
 	return toLeft ?
-		Yanjing.sizeToLeftAndRightEdge(0, Yanjing.widthOnFirstMove, minX, maxX, width) :
-		Yanjing.sizeToLeftAndRightEdge(Yanjing.widthOnFirstMove, 100, minX, maxX, width);
+		Zhujiang.sizeToLeftAndRightEdge(0, Zhujiang.widthOnFirstMove, minX, maxX, width) :
+		Zhujiang.sizeToLeftAndRightEdge(Zhujiang.widthOnFirstMove, 100, minX, maxX, width);
 }
 
-Yanjing.setNextSize = function (client, shouldDecrease) {
-	if (Yanjing.beforeMove(client) === Yanjing.States.ERROR) {
-		return Yanjing.States.ERROR;
+Zhujiang.setNextSize = function (client, shouldDecrease) {
+	if (Zhujiang.beforeMove(client) === Zhujiang.States.ERROR) {
+		return Zhujiang.States.ERROR;
 	}
-	var nextSize = Yanjing.isFirstMove(client) ?
-		Yanjing.getNextSizeForFirstMove(shouldDecrease) :
-		Yanjing.getNextSize(client, shouldDecrease);
+	var nextSize = Zhujiang.isFirstMove(client) ?
+		Zhujiang.getNextSizeForFirstMove(shouldDecrease) :
+		Zhujiang.getNextSize(client, shouldDecrease);
 
 	var rect = client.geometry;
 	rect.x = nextSize[0];
 	rect.width = nextSize[1] - nextSize[0];
 	rect.right = rect.x + rect.width;
-	return Yanjing.States.DONE;
+	return Zhujiang.States.DONE;
 }
 
 
@@ -194,8 +194,8 @@ Yanjing.setNextSize = function (client, shouldDecrease) {
  * @param {number} size e.g. 33.3333
  * @return {number} width e.g. 359.9
  */
-Yanjing.sizeToWidth = function (size) {
-  return size / 100 * Yanjing.getWorkAreaRect().width;
+Zhujiang.sizeToWidth = function (size) {
+  return size / 100 * Zhujiang.getWorkAreaRect().width;
 };
 
 /**
@@ -203,13 +203,13 @@ Yanjing.sizeToWidth = function (size) {
  * @return {number} index in Sizes array. The size is the nearest size to the
  * client width in relation to the workspace width.
  */
-Yanjing.widthToSizeIndex = function (clientWidth) {
+Zhujiang.widthToSizeIndex = function (clientWidth) {
   // E.g. if window is 650px and screen is 1080 we'd get 33
-  var intWidthPercent = Math.round(clientWidth / Yanjing.getWorkAreaRect().width * 100);
+  var intWidthPercent = Math.round(clientWidth / Zhujiang.getWorkAreaRect().width * 100);
 
   var smallestDiff = 9999;
   var smallestI = 0;
-  Yanjing.Sizes.forEach(function (size, i) {
+  Zhujiang.Sizes.forEach(function (size, i) {
     var diff = Math.abs(intWidthPercent - size);
     if (diff < smallestDiff) {
       smallestDiff = diff;
@@ -223,52 +223,52 @@ Yanjing.widthToSizeIndex = function (clientWidth) {
  * @param {number} i index in Sizes
  * @return {number} valid index in Sizes
  */
-Yanjing.getNextI = function (i) {
-  return i >= Yanjing.Sizes.length - 1 ? 0 : i + 1;
+Zhujiang.getNextI = function (i) {
+  return i >= Zhujiang.Sizes.length - 1 ? 0 : i + 1;
 };
 
 /**
  * @param {number} clientWidth like 500 (px)
  * @return {number} width like 333 (px)
  */
-Yanjing.getNextWidth = function (clientWidth) {
+Zhujiang.getNextWidth = function (clientWidth) {
   // e.g. 2 is 50, meaning the client is roughly 50% of the workspace width
-  var sizeI = Yanjing.widthToSizeIndex(clientWidth);
-  var nextI = Yanjing.getNextI(sizeI); // would go left 1 or center/right to 3
-  var nextSize = Yanjing.Sizes[nextI]; // 33.3333 or 66.6666
-  var nextWidth = Yanjing.sizeToWidth(nextSize); // whatever px value, e.g. 359.9
+  var sizeI = Zhujiang.widthToSizeIndex(clientWidth);
+  var nextI = Zhujiang.getNextI(sizeI); // would go left 1 or center/right to 3
+  var nextSize = Zhujiang.Sizes[nextI]; // 33.3333 or 66.6666
+  var nextWidth = Zhujiang.sizeToWidth(nextSize); // whatever px value, e.g. 359.9
   return parseInt(nextWidth, 10);
 };
 
-Yanjing.AfterCycle = {};
-Yanjing.AfterCycle[Yanjing.Dirs.Left] = function afterCycleLeft(client) {
-  return Yanjing.States.DONE;
+Zhujiang.AfterCycle = {};
+Zhujiang.AfterCycle[Zhujiang.Dirs.Left] = function afterCycleLeft(client) {
+  return Zhujiang.States.DONE;
 };
-Yanjing.AfterCycle[Yanjing.Dirs.Center] = function afterCycleCenter(client) {
-  return Yanjing.Move[Yanjing.Dirs.Center](client);
+Zhujiang.AfterCycle[Zhujiang.Dirs.Center] = function afterCycleCenter(client) {
+  return Zhujiang.Move[Zhujiang.Dirs.Center](client);
 };
-Yanjing.AfterCycle[Yanjing.Dirs.Right] = function afterCycleRight(client) {
-  return Yanjing.Move[Yanjing.Dirs.Right](client);
+Zhujiang.AfterCycle[Zhujiang.Dirs.Right] = function afterCycleRight(client) {
+  return Zhujiang.Move[Zhujiang.Dirs.Right](client);
 };
 
 /**
  * @param {KWin::AbstractClient} client
  * @param {string} dir 'Left'
- * @return {string} Yanjing.States value
+ * @return {string} Zhujiang.States value
  */
-Yanjing.cycle = function (client, dir) {
+Zhujiang.cycle = function (client, dir) {
   if (!client.resizeable) {
-    return Yanjing.States.ERROR;
+    return Zhujiang.States.ERROR;
   }
 
   var rect = client.geometry; // { width, height, x, y }
   var clientWidth = rect.width; // 500
-  var nextWidth = Yanjing.getNextWidth(clientWidth);
+  var nextWidth = Zhujiang.getNextWidth(clientWidth);
   rect.width = nextWidth;
   client.geometry = rect;
 
   // Move again after cycle to fix reposition due to resize
-  var after = Yanjing.AfterCycle[dir];
+  var after = Zhujiang.AfterCycle[dir];
   return after && after(client);
 };
 
@@ -278,7 +278,7 @@ Yanjing.cycle = function (client, dir) {
  * @param {KWin::AbstractClient} client
  * @return {KWin::AbstractClient} client
  */
-Yanjing.unmax = function (client) {
+Zhujiang.unmax = function (client) {
   // When you unmax a window it reverts geometry to pre max width and height
   if (typeof client.setMaximize === 'function') {
     var VERTICAL = false;
@@ -296,180 +296,180 @@ Yanjing.unmax = function (client) {
 /**
  * @param {KWin::AbstractClient} client
  * @param {function} moveCb called with client
- * @return {string} Yanjing.States value
+ * @return {string} Zhujiang.States value
  */
-Yanjing.beforeMove = function (client) {
+Zhujiang.beforeMove = function (client) {
   if (!client.moveable) {
-    return Yanjing.States.ERROR;
+    return Zhujiang.States.ERROR;
   }
 
   // Horizonatally unmax a client before moving, since you shouldn't be able
   // move a maximized window.
   // setMaximize is documented at https://develop.kde.org/docs/plasma/kwin/api/
-  Yanjing.unmax(client);
-  return Yanjing.States.DONE;
+  Zhujiang.unmax(client);
+  return Zhujiang.States.DONE;
 };
 
-Yanjing.Move = {};
+Zhujiang.Move = {};
 
 /**
  * @param {KWin::AbstractClient} client
- * @return {string} Yanjing.States value
+ * @return {string} Zhujiang.States value
  */
-Yanjing.Move[Yanjing.Dirs.Left] = function (client) {
-  if (Yanjing.beforeMove(client) === Yanjing.States.ERROR) {
-    return Yanjing.States.ERROR;
+Zhujiang.Move[Zhujiang.Dirs.Left] = function (client) {
+  if (Zhujiang.beforeMove(client) === Zhujiang.States.ERROR) {
+    return Zhujiang.States.ERROR;
   }
 
   var rect = client.geometry;
-  var workAreaLeftEdge = Yanjing.getWorkAreaRect().x;
+  var workAreaLeftEdge = Zhujiang.getWorkAreaRect().x;
   var isFlushed = rect.x === workAreaLeftEdge;
   if (isFlushed) {
-    return Yanjing.States.NOOP;
+    return Zhujiang.States.NOOP;
   }
 
   var rect = client.geometry;
   rect.x = workAreaLeftEdge;
   client.geometry = rect;
-  return Yanjing.States.DONE;
+  return Zhujiang.States.DONE;
 };
 
 /**
  * @param {KWin::AbstractClient} client
- * @return {string} Yanjing.States value
+ * @return {string} Zhujiang.States value
  */
-Yanjing.Move[Yanjing.Dirs.Right] = function (client) {
-  if (Yanjing.beforeMove(client) === Yanjing.States.ERROR) {
-    return Yanjing.States.ERROR;
+Zhujiang.Move[Zhujiang.Dirs.Right] = function (client) {
+  if (Zhujiang.beforeMove(client) === Zhujiang.States.ERROR) {
+    return Zhujiang.States.ERROR;
   }
 
   var rect = client.geometry;
-  var clientRightEdge = Yanjing.getRightEdge(rect);
+  var clientRightEdge = Zhujiang.getRightEdge(rect);
 
-  var workAreaRect = Yanjing.getWorkAreaRect();
-  var workAreaRightEdge = Yanjing.getRightEdge(workAreaRect);
+  var workAreaRect = Zhujiang.getWorkAreaRect();
+  var workAreaRightEdge = Zhujiang.getRightEdge(workAreaRect);
 
   var isFlushed = clientRightEdge === workAreaRightEdge;
   if (isFlushed) {
-    return Yanjing.States.NOOP;
+    return Zhujiang.States.NOOP;
   }
 
   rect.x = workAreaRightEdge - rect.width;
   client.geometry = rect;
-  return Yanjing.States.DONE;
+  return Zhujiang.States.DONE;
 };
 
 /**
  * @param {KWin::AbstractClient} client
- * @return {string} Yanjing.States value
+ * @return {string} Zhujiang.States value
  */
-Yanjing.Move[Yanjing.Dirs.Center] = function (client) {
-  if (Yanjing.beforeMove(client) === Yanjing.States.ERROR) {
-    return Yanjing.States.ERROR;
+Zhujiang.Move[Zhujiang.Dirs.Center] = function (client) {
+  if (Zhujiang.beforeMove(client) === Zhujiang.States.ERROR) {
+    return Zhujiang.States.ERROR;
   }
 
   var rect = client.geometry;
   var clientWidth = rect.width;
-  var workAreaRect = Yanjing.getWorkAreaRect();
+  var workAreaRect = Zhujiang.getWorkAreaRect();
   var workspaceCenterX = (workAreaRect.width / 2) + workAreaRect.x;
   var clientCenterX = rect.x + (clientWidth / 2);
   var isCentered = (
-    clientCenterX - Yanjing.CENTER_MOE <= workspaceCenterX &&
-    clientCenterX + Yanjing.CENTER_MOE >= workspaceCenterX
+    clientCenterX - Zhujiang.CENTER_MOE <= workspaceCenterX &&
+    clientCenterX + Zhujiang.CENTER_MOE >= workspaceCenterX
   );
   if (isCentered) {
-    return Yanjing.States.NOOP;
+    return Zhujiang.States.NOOP;
   }
 
   var distance = workspaceCenterX - clientCenterX;
   rect.x = rect.x + distance;
   client.geometry = rect;
-  return Yanjing.States.DONE;
+  return Zhujiang.States.DONE;
 };
 
 /**
  * @param {KWin::AbstractClient} client
  * @param {string} key
- * @return {string} Yanjing.States value
+ * @return {string} Zhujiang.States value
  */
-Yanjing.squish = function (client, key) {
-  var dir = Yanjing.Dirs[key];
-  var move = Yanjing.Move[key];
+Zhujiang.squish = function (client, key) {
+  var dir = Zhujiang.Dirs[key];
+  var move = Zhujiang.Move[key];
   if (!move || !dir) {
     print('Unrecognized command');
-    return Yanjing.States.ERROR;
+    return Zhujiang.States.ERROR;
   }
 
   var result = move(client);
-  if (result === Yanjing.States.NOOP || result === Yanjing.States.DONE) {
-    return Yanjing.cycle(client, dir);
+  if (result === Zhujiang.States.NOOP || result === Zhujiang.States.DONE) {
+    return Zhujiang.cycle(client, dir);
   }
 
   print('Failed to move ' + dir);
-  return Yanjing.States.ERROR;
+  return Zhujiang.States.ERROR;
 };
 
 /**
  * @param {KWin::AbstractClient} client
- * @return {string} Yanjing.States value
+ * @return {string} Zhujiang.States value
  */
-Yanjing.yMax = function (client) {
+Zhujiang.yMax = function (client) {
   if (!client || !client.resizeable) {
-    return Yanjing.States.ERROR;
+    return Zhujiang.States.ERROR;
   }
 
   // Work area for the active cliint, considers things like docks!
-  var workAreaRect = Yanjing.getWorkAreaRect();
+  var workAreaRect = Zhujiang.getWorkAreaRect();
   var rect = client.geometry;
   rect.y = workAreaRect.y
   rect.height = workAreaRect.height;
   client.geometry = rect;
-  return Yanjing.States.DONE;
+  return Zhujiang.States.DONE;
 };
 
-Yanjing.main = function () {
+Zhujiang.main = function () {
 
   registerShortcut(
     'left-ymax',
-    'Yanjing: Vertically maximize and flush or cyclic resize window to left edge of screen',
+    'Zhujiang: Vertically maximize and flush or cyclic resize window to left edge of screen',
     'ctrl+shift+meta+a',
     function () {
       var client = workspace.activeClient;
-      Yanjing.yMax(client);
-	  Yanjing.buildSizes();
-	  Yanjing.setNextSize(client, true);
+      Zhujiang.yMax(client);
+	  Zhujiang.buildSizes();
+	  Zhujiang.setNextSize(client, true);
     }
   );
 
   registerShortcut(
     'center-ymax',
-    'Yanjing: Vertically maximize and center or cyclic resize window',
+    'Zhujiang: Vertically maximize and center or cyclic resize window',
     'ctrl+shift+meta+x',
     function () {
       var client = workspace.activeClient;
-      Yanjing.yMax(client);
-      Yanjing.squish(client, Yanjing.Dirs.Center);
+      Zhujiang.yMax(client);
+      Zhujiang.squish(client, Zhujiang.Dirs.Center);
     }
   );
 
   registerShortcut(
     'right-ymax',
-    'Yanjing: Vertically maximize and flush or cyclic resize window to right edge of screen',
+    'Zhujiang: Vertically maximize and flush or cyclic resize window to right edge of screen',
     'ctrl+shift+meta+d',
     function () {
       var client = workspace.activeClient;
-      Yanjing.yMax(client);
-	  Yanjing.buildSizes();
-	  Yanjing.setNextSize(client, false);
+      Zhujiang.yMax(client);
+	  Zhujiang.buildSizes();
+	  Zhujiang.setNextSize(client, false);
     }
   );
 };
 
-Yanjing.main();
+Zhujiang.main();
 
 // Expose for testing
 try {
-  global.Yanjing = Yanjing;
+  global.Zhujiang = Zhujiang;
 } catch (error) {
   /* noop */
 }
