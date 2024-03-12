@@ -109,7 +109,8 @@ Zhujiang.buildSizes = function () {
 	    .forEach(size => {
 	        Zhujiang.centeredSizes.push(Zhujiang.sizeToLeftAndRightEdge(size, 100 - size, minX, maxX, width))
 	    });
-    Zhujiang.centeredSizes.push(Zhujiang.sizeToLeftAndRightEdge(0, 100, minX, maxX, width));
+  Zhujiang.centeredSizes.push(Zhujiang.sizeToLeftAndRightEdge(25, 75, minX, maxX, width));
+  Zhujiang.centeredSizes.push(Zhujiang.sizeToLeftAndRightEdge(0, 100, minX, maxX, width));
 }
 
 /**
